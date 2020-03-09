@@ -42,7 +42,7 @@ dependencies = [
 
 [[package]]
 name = "download-erp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ftp 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unrar 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
