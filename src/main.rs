@@ -2,10 +2,12 @@ extern crate ftp;
 extern crate unrar;
 
 use ftp::FtpStream;
-use std::fs::File;
+use std::fs::{create_dir_all, File};
+use std::io;
 use std::io::{Cursor, Write};
 use std::vec::Vec;
 use unrar::Archive;
+use zip::ZipArchive;
 
 fn download_ftp(dir: &str, file: &str) -> Cursor<Vec<u8>> {
     // Conecta ao ftp server
@@ -36,7 +38,29 @@ fn write_file(file: &str, remote_file: Cursor<Vec<u8>>) {
     println!("Arquivo gravado: {}", file);
 }
 
-fn extract_file(file: String, dir: &str) {
+fn extract_zip_file(file_path: String, dir: &str) {
+    println!("Descompactando arquivo...");
+    let file = File::open(&file_path).unwrap();
+    let mut zip_file = ZipArchive::new(file).unwrap();
+    for i in 0..zip_file.len() {
+        let mut loop_file = zip_file.by_index(i).unwrap();
+        if loop_file.size() > 0 {
+            let file = format!("{}{}", &dir, loop_file.name());
+            let mut buffer = File::create(file).unwrap();
+            io::copy(&mut loop_file, &mut buffer).unwrap();
+        } else {
+            create_dir_all(format!(
+                "{}{}",
+                dir,
+                loop_file.sanitized_name().as_path().display()
+            ))
+            .unwrap();
+        }
+    }
+    println!("Arquivo descompactado");
+}
+
+fn extract_rar_file(file: String, dir: &str) {
     println!("Descompactando arquivo...");
     Archive::new(file)
         .extract_to(dir.to_string())
@@ -46,10 +70,24 @@ fn extract_file(file: String, dir: &str) {
     println!("Arquivo descompactado");
 }
 
-fn process_upgrade(dir_file: &str, name_file: &str, remote_dir: &str, remote_name_file: &str) {
+enum TypeCompressFile {
+    Rar,
+    Zip,
+}
+
+fn process_upgrade(
+    dir_file: &str,
+    name_file: &str,
+    remote_dir: &str,
+    remote_name_file: &str,
+    type_compress: TypeCompressFile,
+) {
     let remote_file = download_ftp(remote_dir, remote_name_file);
     write_file(&name_file, remote_file);
-    extract_file(name_file.to_string(), dir_file);
+    match type_compress {
+        TypeCompressFile::Rar => extract_rar_file(name_file.to_string(), dir_file),
+        TypeCompressFile::Zip => extract_zip_file(name_file.to_string(), dir_file),
+    }
 }
 
 fn download_flex() {
@@ -58,12 +96,36 @@ fn download_flex() {
     let name_file = format!("{}erp-Alfa.rar", dir_file);
     let remote_dir = "install/erp/alpha_builds";
     let remote_name_file = "erp-Alfa.rar";
-    process_upgrade(dir_file, &name_file, remote_dir, remote_name_file);
+    process_upgrade(
+        dir_file,
+        &name_file,
+        remote_dir,
+        remote_name_file,
+        TypeCompressFile::Rar,
+    );
     println!("Atualização do ERP Flex concluída");
+}
+
+fn download_rpservices() {
+    println!("Atualização do RPServices iniciada...");
+    // JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre
+    let dir_file = "/home/camilo/Documentos/rp/";
+    let name_file = format!("{}rpservices-2.0.0.67.zip", dir_file);
+    let remote_dir = "install/erp";
+    let remote_name_file = "rpservices-2.0.0.67.zip";
+    process_upgrade(
+        dir_file,
+        &name_file,
+        remote_dir,
+        remote_name_file,
+        TypeCompressFile::Zip,
+    );
+    println!("Atualização do RPServices concluída");
 }
 
 fn main() {
     println!("Iniciando procedimento...");
     download_flex();
+    download_rpservices();
     println!("Procedimento finalizado!");
 }
