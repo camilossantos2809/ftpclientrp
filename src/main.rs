@@ -1,13 +1,40 @@
+#[macro_use]
+extern crate serde_derive;
+
+use clap::{App, Arg};
+
+mod config;
 mod core;
 
-fn download_flex() {
+enum Programs {
+    Erp,
+    ErpAlpha,
+}
+
+fn download_flex(program: Programs) {
     println!("Atualização do ERP Flex iniciada...");
-    let dir_file = "/home/camilo/Documentos/rp/erp/";
-    let name_file = format!("{}erp-Alfa.rar", dir_file);
-    let remote_dir = "install/erp/alpha_builds";
-    let remote_name_file = "erp-Alfa.rar";
+    let cfg = match config::get() {
+        Ok(res) => res,
+        Err(_) => config::Config::default(),
+    };
+    let dir_file = match program {
+        Programs::ErpAlpha => cfg.erp_alpha.dir,
+        Programs::Erp => cfg.erp.dir,
+    };
+    let name_file = match program {
+        Programs::ErpAlpha => format!("{}erp-Alfa.rar", dir_file),
+        Programs::Erp => format!("{}ERP.rar", dir_file),
+    };
+    let remote_dir = match program {
+        Programs::ErpAlpha => "install/erp/alpha_builds",
+        Programs::Erp => "install/erp",
+    };
+    let remote_name_file = match program {
+        Programs::ErpAlpha => "erp-Alfa.rar",
+        Programs::Erp => "ERP.rar",
+    };
     core::process_upgrade(
-        dir_file,
+        &dir_file,
         &name_file,
         remote_dir,
         remote_name_file,
@@ -35,7 +62,28 @@ fn download_rpservices() {
 
 fn main() {
     println!("Iniciando procedimento...");
-    download_flex();
-    // download_rpservices();
+
+    let matches = App::new("ftpclientrp")
+        .version("0.1.0")
+        .bin_name("ftpclientrp")
+        .arg(
+            Arg::with_name("program")
+                .long("program")
+                .short("p")
+                .required(true)
+                .takes_value(true)
+                .possible_values(&["erp", "erp_alpha"]),
+        )
+        .arg(Arg::with_name("config").short("c").takes_value(false))
+        .get_matches();
+
+    if let Some(program) = matches.value_of("program") {
+        match program {
+            "erp" => download_flex(Programs::Erp),
+            "erp_alpha" => download_flex(Programs::ErpAlpha),
+            _ => println!("None"),
+        }
+    }
+
     println!("Procedimento finalizado!");
 }
