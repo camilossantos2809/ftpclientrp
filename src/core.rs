@@ -1,7 +1,7 @@
 extern crate ftp;
 extern crate unrar;
 
-use ftp::FtpStream;
+use ftp::{FtpError, FtpStream};
 use std::fs::{create_dir_all, File};
 use std::io;
 use std::io::{Cursor, Write};
@@ -41,6 +41,15 @@ fn download_ftp(dir: &str, file: &str) -> Cursor<Vec<u8>> {
     // Encerra conexão com ftp server
     let _ = ftp_stream.quit();
     remote_file
+}
+
+pub fn list_ftp_files(dir: &str) -> Result<Vec<String>, FtpError> {
+    // Conecta ao ftp server
+    let mut ftp_stream = FtpStream::connect("ftp.rpinfo.com.br:21").unwrap();
+    // Realiza login
+    let _ = ftp_stream.login("supermercado", "rpsupermercado10");
+    let list = ftp_stream.list(Some(dir));
+    list
 }
 
 fn extract_zip_file(file_path: String, dir: &str) {

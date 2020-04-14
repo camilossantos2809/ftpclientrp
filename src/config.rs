@@ -11,6 +11,7 @@ pub struct Data {
 pub struct Config {
     pub erp: Data,
     pub erp_alpha: Data,
+    pub rp_services: Data,
 }
 
 impl Default for Config {
@@ -20,6 +21,9 @@ impl Default for Config {
                 dir: "/tmp/".to_string(),
             },
             erp_alpha: Data {
+                dir: "/tmp/".to_string(),
+            },
+            rp_services: Data {
                 dir: "/tmp/".to_string(),
             },
         }
